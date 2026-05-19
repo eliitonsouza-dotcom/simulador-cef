@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador CEF — Pinheiro Imob</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & TOKENS ─────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08080f;--bg2:#0f0f1a;--bg3:#17172a;
+  --card:rgba(255,255,255,.04);--cardh:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.08);--borderb:rgba(255,255,255,.18);
+  --gold:#f5c542;--goldD:rgba(245,197,66,.13);--goldG:rgba(245,197,66,.3);
+  --green:#10d4a8;--greenD:rgba(16,212,168,.13);
+  --blue:#4da6ff;--blueD:rgba(77,166,255,.13);
+  --red:#ff5f7e;--redD:rgba(255,95,126,.13);
+  --text:#eef0f7;--text2:#8890aa;--text3:#4a5268;
+  --r:14px;--rs:8px;--sh:0 8px 32px rgba(0,0,0,.5);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 64px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+
+/* ── HEADER ─────────────────────────────────────────────────────────────── */
+.header{width:100%;max-width:860px;display:flex;align-items:center;gap:14px;margin-bottom:32px}
+.logo-box{width:48px;height:48px;background:linear-gradient(135deg,#f5c542,#ff9d00);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 0 24px var(--goldG);flex-shrink:0}
+.header-text h1{font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header-text p{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* ── CARD ───────────────────────────────────────────────────────────────── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:28px 32px;width:100%;max-width:860px;margin-bottom:20px;box-shadow:var(--sh)}
+
+/* ── SECTION TITLE ───────────────────────────────────────────────────────── */
+.sec-title{font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── GRID FORM ───────────────────────────────────────────────────────────── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 22px}
+.grid.g3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:600px){.grid,.grid.g3{grid-template-columns:1fr}}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.3px}
+.field input,.field select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--rs);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s;width:100%}
+.field input:focus,.field select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,197,66,.12)}
+.field select option{background:var(--bg3)}
+
+/* ── TOGGLE ──────────────────────────────────────────────────────────────── */
+.toggle-row{display:flex;flex-direction:column;gap:6px}
+.toggle-row label.lbl{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.3px}
+.toggle-wrap{display:flex;align-items:center;gap:10px;height:42px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.slider{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:.2s}
+.slider::before{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;background:var(--text3);border-radius:50%;transition:.2s}
+.toggle input:checked+.slider{background:var(--goldD);border-color:var(--gold)}
+.toggle input:checked+.slider::before{transform:translateX(20px);background:var(--gold)}
+.toggle-val{font-size:13px;font-weight:600;color:var(--text2);min-width:28px}
+.toggle input:checked~.toggle-val{color:var(--gold)}
+
+/* ── PILL BUTTONS ────────────────────────────────────────────────────────── */
+.pill-group{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:9px 20px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;font-family:inherit}
+.pill:hover{border-color:var(--gold);color:var(--gold)}
+.pill.active{background:var(--goldD);border-color:var(--gold);color:var(--gold)}
+
+/* ── BUTTON SIMULAR ──────────────────────────────────────────────────────── */
+.btn-simular{width:100%;padding:15px;border-radius:var(--rs);background:linear-gradient(135deg,#f5c542,#ff9d00);border:none;color:#08080f;font-size:15px;font-weight:800;letter-spacing:.4px;cursor:pointer;margin-top:8px;font-family:inherit;transition:opacity .2s,transform .15s;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-simular:hover{opacity:.9;transform:translateY(-1px)}
+.btn-simular:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* ── ERROR ───────────────────────────────────────────────────────────────── */
+.error-box{background:var(--redD);border:1px solid var(--red);border-radius:var(--rs);padding:14px 18px;color:var(--red);font-size:13px;display:none}
+.error-box.show{display:block}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LOADING CARD
+══════════════════════════════════════════════════════════════════════════ */
+#loading-card{display:none;text-align:center}
+
+.loading-icon-wrap{
+  width:72px;height:72px;border-radius:22px;
+  background:linear-gradient(135deg,#f5c542,#ff9d00);
+  display:flex;align-items:center;justify-content:center;
+  font-size:34px;margin:0 auto 20px;
+  box-shadow:0 0 40px rgba(245,197,66,.4);
+  animation:pulse-glow 2s ease-in-out infinite;
+}
+@keyframes pulse-glow{
+  0%,100%{box-shadow:0 0 30px rgba(245,197,66,.35)}
+  50%{box-shadow:0 0 60px rgba(245,197,66,.7)}
+}
+
+.loading-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px}
+.loading-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
+
+/* Timer */
+.timer-bar{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:20px;padding:6px 16px;margin-bottom:28px;
+}
+.timer-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:blink 1s step-start infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.timer-num{font-size:14px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;min-width:36px}
+.timer-lbl{font-size:12px;color:var(--text3)}
+
+/* Steps */
+.steps-list{display:flex;flex-direction:column;gap:10px;text-align:left;max-width:420px;margin:0 auto}
+.step-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--rs);background:var(--card);border:1px solid var(--border);transition:all .35s}
+.step-item.active{background:var(--goldD);border-color:rgba(245,197,66,.3)}
+.step-item.done{background:var(--greenD);border-color:rgba(16,212,168,.25)}
+.step-dot{width:22px;height:22px;border-radius:50%;background:var(--bg3);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0;transition:all .35s}
+.step-item.active .step-dot{background:var(--gold);border-color:var(--gold);color:#08080f;animation:spin-dot .5s linear infinite}
+@keyframes spin-dot{to{box-shadow:0 0 0 4px rgba(245,197,66,.2)}}
+.step-item.done .step-dot{background:var(--green);border-color:var(--green);color:#fff}
+.step-item.done .step-dot::after{content:'✓'}
+.step-item:not(.done):not(.active) .step-dot::after{content:attr(data-n)}
+.step-item.active .step-dot::after{content:''}
+.step-item.active .step-dot-spinner{display:block}
+.step-txt{font-size:13px;font-weight:500;color:var(--text3);transition:color .35s}
+.step-item.active .step-txt{color:var(--gold);font-weight:600}
+.step-item.done .step-txt{color:var(--green)}
+
+/* ── RESULTADO ───────────────────────────────────────────────────────────── */
+#resultado{display:none}
+.res-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.res-emp{font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.res-cliente{font-size:13px;color:var(--text2);margin-top:4px}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+.badge-green{background:var(--greenD);color:var(--green);border:1px solid rgba(16,212,168,.25)}
+.badge-gold{background:var(--goldD);color:var(--gold);border:1px solid rgba(245,197,66,.25)}
+
+/* ── CAPACIDADE HERO ─────────────────────────────────────────────────────── */
+.cap-hero{
+  background:linear-gradient(135deg,rgba(16,212,168,.1),rgba(77,166,255,.08));
+  border:1px solid rgba(16,212,168,.22);
+  border-radius:var(--r);padding:22px 28px;margin-bottom:22px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+}
+.cap-left{}
+.cap-label{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.cap-value{font-size:32px;font-weight:800;color:var(--green);line-height:1}
+.cap-sub{font-size:12px;color:var(--text2);margin-top:6px}
+.cap-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.comprometimento-wrap{text-align:right}
+.comp-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.comp-bar-bg{width:160px;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.comp-bar-fill{height:100%;border-radius:4px;transition:width .8s ease;background:var(--green)}
+.comp-bar-fill.warn{background:var(--gold)}
+.comp-bar-fill.over{background:var(--red)}
+.comp-pct{font-size:18px;font-weight:800;margin-top:6px}
+.comp-pct.ok{color:var(--green)}
+.comp-pct.warn{color:var(--gold)}
+.comp-pct.over{color:var(--red)}
+.comp-limit{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── RESULTADO GRID ──────────────────────────────────────────────────────── */
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+@media(max-width:600px){.res-grid{grid-template-columns:1fr}}
+.res-item{background:var(--card);border:1px solid var(--border);border-radius:var(--rs);padding:14px 16px}
+.res-item.highlight{background:var(--goldD);border-color:rgba(245,197,66,.3)}
+.res-item.highlight .res-value{color:var(--gold)}
+.res-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.res-value{font-size:17px;font-weight:700;color:var(--text)}
+
+/* ── TABELA PRESTAÇÃO ────────────────────────────────────────────────────── */
+.prest-table{width:100%;border-collapse:collapse;font-size:13px}
+.prest-table th{text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;border-bottom:1px solid var(--border)}
+.prest-table td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04)}
+.prest-table td:last-child{text-align:right;font-weight:600;color:var(--text)}
+.prest-table tr.total td{border-top:1px solid var(--borderb);color:var(--gold);font-weight:800;font-size:15px}
+.prest-table tr:hover td{background:var(--cardh)}
+
+/* ── AÇÕES ───────────────────────────────────────────────────────────────── */
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.btn-action{padding:11px 22px;border-radius:var(--rs);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;transition:all .18s}
+.btn-cef{background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none}
+.btn-pdf{background:linear-gradient(135deg,#f5c542,#ff9d00);color:#08080f}
+.btn-wpp{background:#25d366;color:#fff}
+.btn-nova{background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
+.btn-action:hover{opacity:.85;transform:translateY(-1px)}
+
+/* ── VIABILIDADE ─────────────────────────────────────────────────────────── */
+.viab-block{background:var(--card);border:1px solid var(--border);border-radius:var(--rs);padding:16px 20px;margin-bottom:12px}
+.viab-lhd{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+.viab-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.viab-row:last-child{border-bottom:none}
+.viab-key{font-size:13px;color:var(--text2);flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.viab-val{font-size:14px;font-weight:600;color:var(--text);text-align:right;white-space:nowrap}
+.viab-val.vg{color:var(--gold)}.viab-val.vn{color:var(--green)}.viab-val.vr{color:var(--red)}
+.viab-row.vtotal{background:rgba(255,255,255,.03);margin:0 -20px;padding:10px 20px}
+.viab-row.vtotal .viab-key{font-weight:700;color:var(--text);font-size:14px}
+.viab-row.vtotal .viab-val{font-size:16px}
+.viab-tag{font-size:10px;font-weight:700;background:var(--greenD);color:var(--green);border-radius:4px;padding:2px 7px;border:1px solid rgba(16,212,168,.2);white-space:nowrap}
+.viab-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:var(--rs);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;width:130px;text-align:right}
+.viab-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,197,66,.12)}
+.viab-input-sm{width:60px;text-align:center;padding:5px 8px}
+
+/* ── PRINT ───────────────────────────────────────────────────────────────── */
+@media print{
+  body{background:#fff;color:#111;padding:20px;display:block}
+  .header,.card:first-of-type,.actions,.btn-simular,.error-box,#loading-card{display:none!important}
+  #resultado{display:block!important}
+  .card{border:1px solid #ddd;box-shadow:none;background:#fff;margin-bottom:14px}
+  .res-item{border:1px solid #ddd;background:#f9f9f9}
+  .res-item.highlight{background:#fff8dc}
+  .res-item.highlight .res-value{color:#b8860b}
+  .res-emp{color:#b8860b;-webkit-text-fill-color:#b8860b}
+  .cap-hero{background:#f0fdf8;border-color:#0a7a5a}
+  .cap-value{color:#0a7a5a}
+  .comp-bar-bg{background:#ddd}
+  .prest-table th{color:#555}
+  .prest-table td{color:#111}
+  .prest-table tr.total td{color:#b8860b}
+  .badge-green{background:#e6f9f4;color:#0a7a5a;border-color:#0a7a5a}
+  .badge-gold{background:#fff8dc;color:#b8860b;border-color:#b8860b}
+  .sec-title{color:#555}
+  .sec-title::after{background:#ddd}
+  .print-footer{display:block!important}
+  .card{page-break-inside:avoid}
+}
+.print-footer{display:none;font-size:11px;color:#888;text-align:center;margin-top:24px;border-top:1px solid #ddd;padding-top:12px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo-box">🏠</div>
+  <div class="header-text">
+    <h1>Simulador CEF · X2 Negócios Imobiliários</h1>
+    <p>NPMCMV · Fundo FGTS · Sinop – MT</p>
+  </div>
+  <a href="/logout" style="margin-left:auto;font-size:12px;color:var(--text2);text-decoration:none;border:1px solid var(--border);padding:6px 14px;border-radius:6px;transition:color .2s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text2)'">Sair</a>
+</div>
+
+<!-- FORMULÁRIO -->
+<div class="card" id="form-card">
+  <div class="sec-title">Dados do cliente</div>
+
+  <div class="grid g3" style="margin-bottom:20px">
+    <div class="field">
+      <label>Nome do Cliente</label>
+      <input type="text" id="nome_cliente" placeholder="Ex: João da Silva">
+    </div>
+    <div class="field">
+      <label>Data de Nascimento</label>
+      <input type="date" id="data_nascimento" max="2006-12-31">
+    </div>
+    <div class="field">
+      <label>Corretor Responsável</label>
+      <input type="text" id="nome_corretor" placeholder="Ex: Wellington Souza">
+    </div>
+  </div>
+
+  <div class="sec-title">Empreendimento &amp; Imóvel</div>
+
+  <div style="margin-bottom:18px">
+    <label class="lbl" style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px">Empreendimento</label>
+    <div class="pill-group" id="emp-group">
+      <button class="pill active" data-val="pacaembu" onclick="setPill(this,'emp-group')">Pacaembu &nbsp;R$ 235.000</button>
+      <button class="pill" data-val="paiaguas" onclick="setPill(this,'emp-group')">Paiaguás &nbsp;R$ 220.000</button>
+    </div>
+  </div>
+
+  <div style="margin-bottom:18px">
+    <label class="lbl" style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px">Tipologia</label>
+    <div class="pill-group" id="tipo-group">
+      <button class="pill active" data-val="apartamento" onclick="setPill(this,'tipo-group')">Apartamento &nbsp;48,29 m²</button>
+      <button class="pill" data-val="casa" onclick="setPill(this,'tipo-group')">Casa &nbsp;43,85 m²</button>
+    </div>
+  </div>
+
+  <div class="sec-title">Renda &amp; condições</div>
+
+  <div class="grid g3" style="margin-bottom:20px">
+    <div class="field">
+      <label>Renda Familiar (R$)</label>
+      <input type="text" id="renda" placeholder="Ex: 2.500,00" oninput="mascaraBRL(this)">
+    </div>
+
+    <div class="toggle-row">
+      <label class="lbl">FGTS há mais de 3 anos?</label>
+      <div class="toggle-wrap">
+        <label class="toggle">
+          <input type="checkbox" id="fgts_3anos" onchange="atualizarToggle(this,'fgts_val')">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-val" id="fgts_val">Não</span>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <label class="lbl">Possui dependente menor?</label>
+      <div class="toggle-wrap">
+        <label class="toggle">
+          <input type="checkbox" id="dependente" onchange="atualizarToggle(this,'dep_val')">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-val" id="dep_val">Não</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+
+  <button class="btn-simular" id="btn-sim" onclick="simular()">
+    <span id="btn-txt">⚡ Simular na Caixa</span>
+  </button>
+</div>
+
+<!-- LOADING -->
+<div class="card" id="loading-card">
+  <div class="loading-icon-wrap">🏦</div>
+  <div class="loading-title">Consultando a Caixa Econômica Federal</div>
+  <div class="loading-sub">Navegando pelo portal de empreendimentos em tempo real</div>
+
+  <div class="timer-bar">
+    <span class="timer-dot"></span>
+    <span class="timer-num" id="timer-num">0s</span>
+    <span class="timer-lbl">em processamento</span>
+  </div>
+
+  <div class="steps-list" id="steps-list">
+    <div class="step-item" id="step-0">
+      <div class="step-dot" data-n="1"></div>
+      <span class="step-txt">Acessando portal de empreendimentos</span>
+    </div>
+    <div class="step-item" id="step-1">
+      <div class="step-dot" data-n="2"></div>
+      <span class="step-txt">Selecionando categoria e cidade (Sinop-MT)</span>
+    </div>
+    <div class="step-item" id="step-2">
+      <div class="step-dot" data-n="3"></div>
+      <span class="step-txt">Informando valor do imóvel e renda</span>
+    </div>
+    <div class="step-item" id="step-3">
+      <div class="step-dot" data-n="4"></div>
+      <span class="step-txt">Inserindo data de nascimento do participante</span>
+    </div>
+    <div class="step-item" id="step-4">
+      <div class="step-dot" data-n="5"></div>
+      <span class="step-txt">Carregando enquadramentos NPMCMV · Código 3280</span>
+    </div>
+    <div class="step-item" id="step-5">
+      <div class="step-dot" data-n="6"></div>
+      <span class="step-txt">Configurando amortização PRICE FGTS</span>
+    </div>
+    <div class="step-item" id="step-6">
+      <div class="step-dot" data-n="7"></div>
+      <span class="step-txt">Definindo cronograma de obra (30 meses)</span>
+    </div>
+    <div class="step-item" id="step-7">
+      <div class="step-dot" data-n="8"></div>
+      <span class="step-txt">Capturando resultado do financiamento</span>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTADO -->
+<div class="card" id="resultado">
+
+  <div class="res-header">
+    <div>
+      <div class="res-emp" id="res-emp">—</div>
+      <div class="res-cliente" id="res-cliente"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+      <div id="badge-fgts"></div>
+      <div id="badge-dep"></div>
+    </div>
+  </div>
+
+  <!-- CAPACIDADE DE FINANCIAMENTO -->
+  <div class="cap-hero" id="cap-hero">
+    <div class="cap-left">
+      <div class="cap-label">Capacidade de Financiamento</div>
+      <div class="cap-value" id="cap-value">—</div>
+      <div class="cap-sub" id="cap-sub"></div>
+    </div>
+    <div class="cap-right">
+      <div class="comprometimento-wrap">
+        <div class="comp-label">Comprometimento de renda</div>
+        <div class="comp-bar-bg">
+          <div class="comp-bar-fill" id="comp-bar" style="width:0%"></div>
+        </div>
+        <div class="comp-pct" id="comp-pct">—</div>
+        <div class="comp-limit">Limite CEF: 30% da renda</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-title">Resumo do financiamento</div>
+
+  <div class="res-grid" id="res-grid"></div>
+
+  <div class="sec-title">Composição da 1ª prestação</div>
+
+  <table class="prest-table">
+    <thead><tr><th>Componente</th><th style="text-align:right">Valor</th></tr></thead>
+    <tbody id="prest-tbody"></tbody>
+  </table>
+
+  <!-- ANÁLISE DE VIABILIDADE -->
+  <div class="sec-title" style="margin-top:28px">Análise de viabilidade</div>
+
+  <div class="viab-block">
+    <div class="viab-lhd">Descontos sobre o valor do imóvel</div>
+    <div class="viab-row">
+      <span class="viab-key">Desconto Caixa Econômica Federal</span>
+      <span class="viab-val vg" id="v-desc-cef">—</span>
+    </div>
+    <div class="viab-row">
+      <span class="viab-key">MT PAR · Ser Família <span class="viab-tag" id="v-mtpar-faixa"></span></span>
+      <span class="viab-val vg" id="v-desc-mtpar">—</span>
+    </div>
+    <div class="viab-row">
+      <span class="viab-key">Desconto da construtora</span>
+      <input class="viab-input" id="v-desc-const" type="text" placeholder="R$ 0,00" oninput="mascaraBRL(this);calcViab()">
+    </div>
+    <div class="viab-row vtotal">
+      <span class="viab-key">Total de descontos</span>
+      <span class="viab-val vg" id="v-total-desc">—</span>
+    </div>
+  </div>
+
+  <div class="viab-block">
+    <div class="viab-lhd">Composição da entrada</div>
+    <div class="viab-row">
+      <span class="viab-key">Valor do imóvel</span>
+      <span class="viab-val" id="v-imovel">—</span>
+    </div>
+    <div class="viab-row">
+      <span class="viab-key">(-) Capacidade de financiamento</span>
+      <span class="viab-val" id="v-financ">—</span>
+    </div>
+    <div class="viab-row">
+      <span class="viab-key">(-) Total de descontos</span>
+      <span class="viab-val" id="v-total-desc2">—</span>
+    </div>
+    <div class="viab-row vtotal">
+      <span class="viab-key">= Entrada total</span>
+      <span class="viab-val vn" id="v-entrada">—</span>
+    </div>
+  </div>
+
+  <div class="viab-block">
+    <div class="viab-lhd">Parcelas com a construtora · Pré e Pós chaves</div>
+
+    <div class="viab-row">
+      <span class="viab-key">(-) Sinal de negócio (na escolha da unidade)</span>
+      <input class="viab-input" id="v-sinal" type="text" oninput="mascaraBRL(this);calcViab()">
+    </div>
+    <div class="viab-row vtotal">
+      <span class="viab-key">= Restante a parcelar</span>
+      <span class="viab-val vn" id="v-restante">—</span>
+    </div>
+
+    <div class="viab-row" style="margin-top:10px;border-top:1px solid var(--border);padding-top:12px">
+      <span class="viab-key">
+        <span style="background:var(--goldD);color:var(--gold);border:1px solid rgba(245,197,66,.25);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">PRÉ-CHAVES 43%</span>
+        &nbsp;<span id="v-pre-total" style="color:var(--text2);font-size:13px">—</span>
+        <span style="color:var(--text3);font-size:12px;margin-left:8px">parcelas:</span>
+        <input class="viab-input viab-input-sm" id="v-pre-nparc" type="number" value="14" min="1" max="60" oninput="calcViab()">
+        <span style="color:var(--text3);font-size:12px">&nbsp;×</span>
+      </span>
+      <span class="viab-val vn" id="v-pre-parc">—</span>
+    </div>
+    <div id="v-pre-warn" style="display:none;padding:4px 0 6px">
+      <span style="font-size:12px;color:var(--red);font-weight:600">⚠ Parcela abaixo de R$ 350,00 — aumente o número de parcelas</span>
+    </div>
+
+    <div class="viab-row">
+      <span class="viab-key">
+        <span style="background:var(--greenD);color:var(--green);border:1px solid rgba(16,212,168,.25);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">PÓS-CHAVES 57%</span>
+        &nbsp;<span id="v-pck-total" style="color:var(--text2);font-size:13px">—</span>
+        <span style="color:var(--text3);font-size:12px;margin-left:8px">parcelas:</span>
+        <input class="viab-input viab-input-sm" id="v-pck-nparc" type="number" value="46" min="1" max="60" oninput="calcViab()">
+        <span style="color:var(--text3);font-size:12px">&nbsp;×</span>
+      </span>
+      <span class="viab-val vn" id="v-pck-parc">—</span>
+    </div>
+    <div id="v-pck-warn" style="display:none;padding:4px 0 6px">
+      <span style="font-size:12px;color:var(--red);font-weight:600">⚠ Parcela abaixo de R$ 350,00 — aumente o número de parcelas</span>
+    </div>
+
+    <div class="viab-row" style="margin-top:6px">
+      <span class="viab-key">Documentação em cartório</span>
+      <span class="viab-val" style="color:var(--text2);font-size:13px">R$ 3.000,00 &nbsp;·&nbsp; 12× R$ 250,00</span>
+    </div>
+    <div class="viab-row">
+      <span class="viab-key">Taxa de obra</span>
+      <span style="font-size:12px;color:var(--text3);font-style:italic">Conforme % de conclusão do módulo</span>
+    </div>
+    <div class="viab-row vtotal" style="margin-top:4px">
+      <span class="viab-key" id="v-pos-label">Parcelas mensais após estar morando</span>
+      <span class="viab-val vg" id="v-pos-val">—</span>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-action btn-cef" id="btn-cef" onclick="baixarCEF()" style="display:none">⬇ Imprimir CEF do Cliente</button>
+    <button class="btn-action btn-pdf" onclick="window.print()">🖨 Imprimir resumo (dashboard)</button>
+    <button class="btn-action btn-wpp" id="btn-wpp" onclick="enviarWpp()">💬 Copiar mensagem WhatsApp</button>
+    <button class="btn-action btn-nova" onclick="novaSim()">↩ Nova simulação</button>
+  </div>
+
+  <div class="print-footer" id="print-footer"></div>
+</div>
+
+<script>
+/* ── Globals ─────────────────────────────────────────────────────────────── */
+let _resultado   = null;
+let _corretorNome = '';
+let _timerIval   = null;
+let _stepTimers  = [];
+let _timerSec    = 0;
+let _rendaNum    = 0;
+
+/* ── Steps config (segundos aproximados p/ cada etapa) ───────────────────── */
+const STEP_TIMES = [0, 5, 10, 16, 23, 30, 37, 44];
+
+/* ── Pill selector ───────────────────────────────────────────────────────── */
+function setPill(btn, groupId){
+  document.getElementById(groupId).querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+}
+function pillVal(groupId){
+  const a = document.getElementById(groupId).querySelector('.pill.active');
+  return a ? a.dataset.val : null;
+}
+
+/* ── Toggle ──────────────────────────────────────────────────────────────── */
+function atualizarToggle(cb, valId){
+  document.getElementById(valId).textContent = cb.checked ? 'Sim' : 'Não';
+}
+
+/* ── Máscara BRL ─────────────────────────────────────────────────────────── */
+function mascaraBRL(el){
+  let v = el.value.replace(/\D/g,'');
+  if(!v){ el.value=''; return; }
+  v = (parseInt(v,10)/100).toFixed(2);
+  el.value = parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+/* ── Parse BRL string → number ───────────────────────────────────────────── */
+function parseBRL(s){
+  if(!s) return 0;
+  return parseFloat(s.replace(/[R$\s.]/g,'').replace(',','.')) || 0;
+}
+
+/* ── Loading: timer ──────────────────────────────────────────────────────── */
+function startTimer(){
+  _timerSec = 0;
+  _timerIval = setInterval(()=>{
+    _timerSec++;
+    document.getElementById('timer-num').textContent = _timerSec + 's';
+  }, 1000);
+}
+function stopTimer(){
+  clearInterval(_timerIval);
+  _timerIval = null;
+}
+
+/* ── Loading: steps animation ────────────────────────────────────────────── */
+function startSteps(){
+  // Reset
+  for(let i=0;i<8;i++){
+    const el = document.getElementById('step-'+i);
+    el.classList.remove('active','done');
+    el.querySelector('.step-dot').removeAttribute('style');
+  }
+  // Activate each step at its scheduled time
+  STEP_TIMES.forEach((sec, i) => {
+    const t = setTimeout(()=>{
+      // Mark previous as done
+      if(i > 0) document.getElementById('step-'+(i-1)).classList.replace('active','done') ||
+                 document.getElementById('step-'+(i-1)).classList.add('done');
+      document.getElementById('step-'+i).classList.add('active');
+    }, sec * 1000);
+    _stepTimers.push(t);
+  });
+}
+function stopSteps(success){
+  _stepTimers.forEach(t=>clearTimeout(t));
+  _stepTimers = [];
+  if(success){
+    for(let i=0;i<8;i++){
+      const el = document.getElementById('step-'+i);
+      el.classList.remove('active');
+      el.classList.add('done');
+    }
+  }
+}
+
+/* ── Simular ─────────────────────────────────────────────────────────────── */
+async function simular(){
+  const nome     = document.getElementById('nome_cliente').value.trim();
+  const corretor = document.getElementById('nome_corretor').value.trim();
+  const nasc     = document.getElementById('data_nascimento').value;
+  const renda = document.getElementById('renda').value.trim();
+  const fgts  = document.getElementById('fgts_3anos').checked;
+  const dep   = document.getElementById('dependente').checked;
+  const emp   = pillVal('emp-group');
+  const tipo  = pillVal('tipo-group');
+
+  const errEl = document.getElementById('error-box');
+  errEl.classList.remove('show');
+
+  if(!nasc){ showError('Informe a data de nascimento.'); return; }
+  if(!renda){ showError('Informe a renda familiar.'); return; }
+
+  _rendaNum = parseBRL(renda);
+
+  // Esconde form, mostra loading
+  document.getElementById('form-card').style.display   = 'none';
+  document.getElementById('resultado').style.display   = 'none';
+  document.getElementById('loading-card').style.display = 'block';
+  document.getElementById('btn-sim').disabled = true;
+  window.scrollTo({top: 0, behavior: 'smooth'});
+
+  startTimer();
+  startSteps();
+
+  try {
+    const res = await fetch('/simular', {
+      method : 'POST',
+      headers: {'Content-Type':'application/json'},
+      body   : JSON.stringify({
+        nome_cliente   : nome,
+        data_nascimento: nasc,
+        renda          : renda,
+        fgts_3anos     : fgts,
+        dependente     : dep,
+        empreendimento : emp,
+        tipologia      : tipo,
+      })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.erro || 'Erro desconhecido');
+
+    stopTimer();
+    stopSteps(true);
+
+    // Breve pausa p/ usuário ver todos os steps concluídos
+    await new Promise(r => setTimeout(r, 800));
+
+    document.getElementById('loading-card').style.display = 'none';
+    mostrarResultado(data.resultado, {nome, corretor, fgts, dep, emp, tipo});
+
+  } catch(e){
+    stopTimer();
+    stopSteps(false);
+    document.getElementById('loading-card').style.display = 'none';
+    document.getElementById('form-card').style.display    = 'block';
+    document.getElementById('btn-sim').disabled = false;
+    showError('Erro: ' + e.message);
+  }
+}
+
+/* ── Mostrar resultado ───────────────────────────────────────────────────── */
+function mostrarResultado(r, inputs){
+  _resultado    = r;
+  _corretorNome = inputs.corretor || '';
+
+  // Cabeçalho
+  document.getElementById('res-emp').textContent = r.empreendimento || inputs.emp;
+  document.getElementById('res-cliente').textContent =
+    inputs.nome ? '👤 ' + inputs.nome : '';
+
+  // Badges
+  document.getElementById('badge-fgts').innerHTML = inputs.fgts
+    ? '<span class="badge badge-gold">✓ Desconto FGTS 3 anos</span>' : '';
+  document.getElementById('badge-dep').innerHTML = inputs.dep
+    ? '<span class="badge badge-green">✓ Desconto Dependente</span>' : '';
+
+  // ── Capacidade de Financiamento ──────────────────────────────────────────
+  const capVal  = parseBRL(r.valor_financiamento);
+  const prest   = parseBRL(r.primeira_prestacao || r.total_prestacao);
+  const renda   = _rendaNum;
+  const pct     = renda > 0 ? (prest / renda) * 100 : 0;
+  const pctStr  = pct.toFixed(1) + '%';
+  const limPrest = (renda * 0.30);
+
+  document.getElementById('cap-value').textContent =
+    r.valor_financiamento || '—';
+
+  document.getElementById('cap-sub').textContent =
+    capVal > 0
+      ? `Valor financiado pela Caixa Econômica Federal`
+      : '';
+
+  // Barra comprometimento
+  const bar = document.getElementById('comp-bar');
+  const pctEl = document.getElementById('comp-pct');
+  const clampedPct = Math.min(pct, 100);
+
+  bar.style.width = clampedPct + '%';
+  bar.className = 'comp-bar-fill' + (pct > 35 ? ' over' : pct > 28 ? ' warn' : '');
+  pctEl.textContent = pct > 0 ? pctStr : '—';
+  pctEl.className = 'comp-pct' + (pct > 35 ? ' over' : pct > 28 ? ' warn' : ' ok');
+
+  // Grid principal
+  const grid = document.getElementById('res-grid');
+  grid.innerHTML = '';
+  const items = [
+    {l:'Valor do Imóvel',    v: r.valor_imovel},
+    {l:'Valor da Entrada',   v: r.valor_entrada,        h:true},
+    {l:'Desconto Caixa',     v: r.desconto,             h:!!r.desconto && r.desconto !== 'R$ 0,00'},
+    {l:'Valor Financiado',   v: r.valor_financiamento},
+    {l:'Prazo',              v: r.prazo_maximo},
+    {l:'Sistema',            v: r.sistema_amortizacao},
+    {l:'Juros Nominais',     v: r.juros_nominais},
+    {l:'Juros Efetivos',     v: r.juros_efetivos},
+    {l:'1ª Prestação',       v: r.primeira_prestacao,   h:true},
+    {l:'Apólice de Seguro',  v: r.apolice},
+  ];
+  items.forEach(({l,v,h})=>{
+    if(!v) return;
+    const d = document.createElement('div');
+    d.className = 'res-item' + (h?' highlight':'');
+    d.innerHTML = `<div class="res-label">${l}</div><div class="res-value">${v}</div>`;
+    grid.appendChild(d);
+  });
+
+  // Tabela prestação
+  const tbody = document.getElementById('prest-tbody');
+  tbody.innerHTML = '';
+  const linhas = [
+    ['Amortização + Juros',   r.amortizacao_juros],
+    ['Seguro DFI',            r.seguro_dfi],
+    ['Seguro MIP',            r.seguro_mip],
+    ['Total Seguros',         r.total_seguros],
+    ['Taxa de Administração', r.taxa_adm],
+    ['TOTAL',                 r.total_prestacao || r.primeira_prestacao, true],
+  ];
+  linhas.forEach(([label, val, total])=>{
+    if(!val) return;
+    const tr = document.createElement('tr');
+    if(total) tr.className = 'total';
+    tr.innerHTML = `<td>${label}</td><td>${val}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Rodapé para impressão
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  document.getElementById('print-footer').innerHTML =
+    `Simulação gerada em ${hoje} · Pinheiro Imob · Sinop – MT<br>
+     Dados obtidos diretamente do Simulador Caixa Econômica Federal.<br>
+     Sujeito a alteração conforme análise de crédito.`;
+
+  // Botão PDF da Caixa — só aparece se o PDF foi gerado
+  document.getElementById('btn-cef').style.display = r.pdf_filename ? 'inline-flex' : 'none';
+
+  // Inicializa viabilidade
+  document.getElementById('v-desc-const').value = '';
+  document.getElementById('v-sinal').value       = '1.500,00';
+  document.getElementById('v-pre-nparc').value   = '14';
+  document.getElementById('v-pck-nparc').value   = '46';
+  calcViab();
+
+  document.getElementById('resultado').style.display = 'block';
+  document.getElementById('btn-sim').disabled = false;
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+/* ── WhatsApp ────────────────────────────────────────────────────────────── */
+function enviarWpp(){
+  const r = _resultado;
+  if(!r) return;
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const descontoCEF   = parseBRL(r.desconto);
+  const mtpar         = calcMTPAR(_rendaNum);
+  const descontoConst = parseBRL(document.getElementById('v-desc-const').value);
+  const totalDesc     = descontoCEF + mtpar.val + descontoConst;
+  const valorImovel   = parseBRL(r.valor_imovel);
+  const financiamento = parseBRL(r.valor_financiamento);
+  const sinal         = parseBRL(document.getElementById('v-sinal').value);
+  const nPre          = Math.max(1, parseInt(document.getElementById('v-pre-nparc').value)||14);
+  const nPck          = Math.max(1, parseInt(document.getElementById('v-pck-nparc').value)||46);
+  const entrada       = Math.max(0, valorImovel - financiamento - totalDesc);
+  const restante      = Math.max(0, entrada - sinal);
+  const preParc       = restante * 0.43 / nPre;
+  const pckParc       = restante * 0.57 / nPck;
+
+  let msg = `🏠 *Simulação CEF — ${r.empreendimento||''}*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+  if(r.nome_cliente) msg += `👤 Cliente: ${r.nome_cliente}\n`;
+  msg += `📅 Data: ${hoje}\n\n`;
+
+  msg += `🏦 *Capacidade de Financiamento:* ${r.valor_financiamento||'—'}\n\n`;
+
+  msg += `🎁 *Descontos aplicados*\n`;
+  if(descontoCEF>0)   msg += `  ├ Desconto CEF: ${fmtBRL(descontoCEF)}\n`;
+  if(mtpar.val>0)     msg += `  ├ MT PAR · Ser Família (${mtpar.label}): ${fmtBRL(mtpar.val)}\n`;
+  if(descontoConst>0) msg += `  ├ Desconto Construtora: ${fmtBRL(descontoConst)}\n`;
+  msg += `  └ *Total de descontos: ${fmtBRL(totalDesc)}*\n\n`;
+
+  msg += `💰 *Valor do Imóvel:* ${r.valor_imovel||'—'}\n`;
+  msg += `📆 *Prazo:* ${r.prazo_maximo||'—'}\n\n`;
+
+  msg += `📥 *Composição da entrada*\n`;
+  msg += `  ├ Entrada total: ${fmtBRL(entrada)}\n`;
+  msg += `  ├ Sinal de negócio: ${fmtBRL(sinal)}\n`;
+  msg += `  ├ Restante: ${fmtBRL(restante)}\n`;
+  msg += `  ├ PRÉ-CHAVES (43%): ${fmtBRL(restante*0.43)} em ${nPre}× de *${fmtBRL(preParc)}*\n`;
+  msg += `  └ PÓS-CHAVES (57%): ${fmtBRL(restante*0.57)} em ${nPck}× de *${fmtBRL(pckParc)}*\n\n`;
+
+  msg += `📋 *Documentação em cartório:* R$ 3.000,00 · 12× R$ 250,00\n`;
+  msg += `🏗 *Taxa de obra:* conforme % de conclusão do módulo\n\n`;
+
+  msg += `💳 *Parcela mensal após estar morando*\n`;
+  msg += `  └ ${r.prazo_maximo||''} de *${r.primeira_prestacao||'—'}*\n`;
+  const corretor = _corretorNome ? ` com o Corretor ${_corretorNome}` : '';
+  msg += `\n_Simulação obtida no portal da Caixa Econômica Federal._\n`;
+  msg += `_Sujeito a análise de crédito._\n`;
+  msg += `_Simulação feita na X2 Negócios Imobiliários${corretor}_`;
+
+  navigator.clipboard.writeText(msg).then(()=>{
+    const btn = document.getElementById('btn-wpp');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copiado!';
+    setTimeout(()=>btn.textContent=orig, 2500);
+  }).catch(()=>alert(msg));
+}
+
+/* ── MT PAR ──────────────────────────────────────────────────────────────── */
+function calcMTPAR(renda){
+  if(renda<=0)    return {val:0,     label:''};
+  if(renda<=3200) return {val:25000, label:'Faixa 1 — até R$ 3.200'};
+  if(renda<=5000) return {val:20000, label:'Faixa 2 — até R$ 5.000'};
+  if(renda<=9600) return {val:10000, label:'Faixa 3 — até R$ 9.600'};
+  return {val:0, label:'Não elegível'};
+}
+
+/* ── Formata número → BRL string ─────────────────────────────────────────── */
+function fmtBRL(n){
+  return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+/* ── Calcular viabilidade (chamado toda vez que input muda) ──────────────── */
+function calcViab(){
+  const r = _resultado; if(!r) return;
+
+  const valorImovel   = parseBRL(r.valor_imovel);
+  const financiamento = parseBRL(r.valor_financiamento);
+  const descontoCEF   = parseBRL(r.desconto);
+  const mtpar         = calcMTPAR(_rendaNum);
+  const descontoConst = parseBRL(document.getElementById('v-desc-const').value);
+  const sinal         = parseBRL(document.getElementById('v-sinal').value);
+
+  const totalDesc = descontoCEF + mtpar.val + descontoConst;
+  const entrada   = Math.max(0, valorImovel - financiamento - totalDesc);
+  const restante  = Math.max(0, entrada - sinal);
+
+  // Descontos
+  document.getElementById('v-desc-cef').textContent   = descontoCEF>0 ? fmtBRL(descontoCEF) : '—';
+  document.getElementById('v-desc-mtpar').textContent = mtpar.val>0   ? fmtBRL(mtpar.val)   : 'Não elegível';
+  const faixaEl = document.getElementById('v-mtpar-faixa');
+  faixaEl.textContent   = mtpar.label;
+  faixaEl.style.display = mtpar.label ? '' : 'none';
+  document.getElementById('v-total-desc').textContent  = fmtBRL(totalDesc);
+  document.getElementById('v-total-desc2').textContent = fmtBRL(totalDesc);
+
+  // Entrada
+  document.getElementById('v-imovel').textContent  = r.valor_imovel || '—';
+  document.getElementById('v-financ').textContent  = r.valor_financiamento || '—';
+  document.getElementById('v-entrada').textContent = fmtBRL(entrada);
+  document.getElementById('v-restante').textContent = fmtBRL(restante);
+
+  // Pré/Pós chaves
+  const MIN   = 350;
+  const preTotal = restante * 0.43;
+  const pckTotal = restante * 0.57;
+  const nPre  = Math.max(1, parseInt(document.getElementById('v-pre-nparc').value) || 14);
+  const nPck  = Math.max(1, parseInt(document.getElementById('v-pck-nparc').value) || 46);
+  const preParc = preTotal / nPre;
+  const pckParc = pckTotal / nPck;
+
+  document.getElementById('v-pre-total').textContent = fmtBRL(preTotal);
+  document.getElementById('v-pck-total').textContent = fmtBRL(pckTotal);
+
+  const preEl = document.getElementById('v-pre-parc');
+  preEl.textContent = preParc > 0 ? fmtBRL(preParc) : '—';
+  preEl.className   = 'viab-val ' + (preParc > 0 && preParc < MIN ? 'vr' : 'vn');
+  document.getElementById('v-pre-warn').style.display = (preParc > 0 && preParc < MIN) ? 'block' : 'none';
+
+  const pckEl = document.getElementById('v-pck-parc');
+  pckEl.textContent = pckParc > 0 ? fmtBRL(pckParc) : '—';
+  pckEl.className   = 'viab-val ' + (pckParc > 0 && pckParc < MIN ? 'vr' : 'vn');
+  document.getElementById('v-pck-warn').style.display = (pckParc > 0 && pckParc < MIN) ? 'block' : 'none';
+
+  // Após estar morando
+  const prazo = r.prazo_maximo || '';
+  document.getElementById('v-pos-label').textContent =
+    prazo ? prazo + ' parcelas mensais (após estar morando)' : 'Parcelas mensais após estar morando';
+  document.getElementById('v-pos-val').textContent = r.primeira_prestacao || '—';
+}
+
+/* ── Baixar PDF da Caixa ─────────────────────────────────────────────────── */
+function baixarCEF(){
+  if(!_resultado || !_resultado.pdf_filename) return;
+  const a = document.createElement('a');
+  a.href = '/pdf/' + encodeURIComponent(_resultado.pdf_filename);
+  a.download = _resultado.pdf_filename;
+  a.click();
+}
+
+/* ── Nova simulação ──────────────────────────────────────────────────────── */
+function novaSim(){
+  document.getElementById('resultado').style.display    = 'none';
+  document.getElementById('loading-card').style.display = 'none';
+  document.getElementById('error-box').classList.remove('show');
+  document.getElementById('form-card').style.display    = 'block';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+/* ── Helpers UI ──────────────────────────────────────────────────────────── */
+function showError(msg){
+  const el = document.getElementById('error-box');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+</script>
+</body>
+</html>
