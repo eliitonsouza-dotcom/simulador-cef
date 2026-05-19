@@ -1,10 +1,14 @@
-from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
+from flask import Flask, send_from_directory, render_template, request, jsonify, send_file, session, redirect, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
 from simulator import simular_caixa, PDF_DIR
 from functools import wraps
 import threading, webbrowser, time, os
 
 app = Flask(__name__, template_folder="templates")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-x2-2025")
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
 
 APP_USER = os.environ.get("APP_USER", "x2")
 APP_PASS = os.environ.get("APP_PASS", "x2imob2025")
@@ -27,6 +31,11 @@ def cors(r):
     return r
 
 
+@app.route("/ping")
+def ping():
+    return "pong", 200
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     erro = False
@@ -35,7 +44,7 @@ def login():
         p = request.form.get("senha", "")
         if u == APP_USER and p == APP_PASS:
             session["logged_in"] = True
-            return redirect(url_for("index"))
+            return redirect("/")
         erro = True
     return render_template("login.html", erro=erro)
 
@@ -43,7 +52,7 @@ def login():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return redirect("/login")
 
 
 @app.route("/simular", methods=["OPTIONS"])
@@ -54,7 +63,7 @@ def simular_options():
 @app.route("/")
 @login_required
 def index():
-    return render_template("index.html")
+    return send_from_directory("templates", "index.html")
 
 
 @app.route("/simular", methods=["POST"])
