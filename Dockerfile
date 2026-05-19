@@ -15,4 +15,4 @@ COPY . .
 ENV PORT=10000
 EXPOSE 10000
 
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 180 app:app
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 360 app:app

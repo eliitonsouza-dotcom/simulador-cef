@@ -24,7 +24,7 @@ PDF_DIR.mkdir(exist_ok=True)
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
-TIMEOUT = 60_000
+TIMEOUT = 120_000
 URL     = "https://www.portaldeempreendimentos.caixa.gov.br/simulador/"
 
 EMPREENDIMENTOS = {
